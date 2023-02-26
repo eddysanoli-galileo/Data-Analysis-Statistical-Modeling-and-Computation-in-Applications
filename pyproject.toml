@@ -1,0 +1,25 @@
+[tool.poetry]
+name = "data analysis"
+version = "0.1.0"
+description = ""
+authors = ["Eduardo Santizo <eddysanoli@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.12"
+scipy = "^1.10.0"
+numpy = "^1.24.1"
+pandas = "^1.5.3"
+ipykernel = "^6.21.0"
+matplotlib = "^3.6.3"
+statsmodels = "0.13.1"
+nptyping = "^2.4.1"
+sympy = "^1.11.1"
+sklearn = "^0.0.post1"
+scikit-learn = "^1.2.1"
+yellowbrick = "^1.5"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
