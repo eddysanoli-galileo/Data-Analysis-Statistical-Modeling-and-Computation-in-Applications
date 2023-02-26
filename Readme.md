@@ -6,6 +6,8 @@ This repository contains the course work for the MITx course `Data Analysis: Sta
 - Module 1: Review
 - Module 2: Genomics and High Dimensional Data
 
+Inside each module, you will find a notebook for each of the lectures found in the course. You will also find a folder called `Project` which contains the last assignment for each module. You can also tend to find a `Recitation` folder, which should contain all of the content for the recitation sessions of the module, in case there was one.
+
 ## Usage
 
 Most of the material is written in either Jupyter notebooks (`ipynb`) or R scripts. All the Jupyter notebook dependencies can be installed by running the command `poetry install` after installing poetry in python (`pip install poetry`).
