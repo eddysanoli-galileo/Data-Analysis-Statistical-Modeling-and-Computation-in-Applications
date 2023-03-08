@@ -20,6 +20,9 @@ scikit-learn = "^1.2.1"
 yellowbrick = "^1.5"
 
 
+[tool.poetry.group.dev.dependencies]
+notebook = "^6.5.3"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
