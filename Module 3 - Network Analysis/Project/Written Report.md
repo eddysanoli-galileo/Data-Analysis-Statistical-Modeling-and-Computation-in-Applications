@@ -131,4 +131,117 @@ Using this, what relevant observations can you make on how the relationship betw
 
 ----
 
-## Problem 3
+## Project
+
+The last part of this assignment is an open-ended project. Choose a sociologically interesting question about either the CAVIAR network or the facebook or twitter network from the recitation notebook section (for the social network data, go to <https://snap.stanford.edu/data/ego-Facebook.html> and <https://snap.stanford.edu/data/ego-Twitter.html>, or any other publicly available network data set, e.g. those at <https://snap.stanford.edu/data/index.html>.
+
+Try to answer your own question using the data. You can subset the data in whichever way you desire as long as it is (sociologically) meaningful. For example, in the case of a cooffending network, you could group nodes by attributes such as sex, group edges such as repeat/non-repeating cooffenses, use the weighted or unweighted co-offending networks, focus on the largest connected component, etc. Think of how you may want to subset the data in the context of the CAVIAR or the social networks, or the publicly available network data set you have chosen.
+
+### Project expectations/Rubric
+
+Clearly states a sociological question which is interesting and relevant to the data. The question must be sociologically motivated: for example, “Compare the network structure in 2003 vs 2009" is not a good question, without further context. If you have some reason to believe that the network structure changes in those years, then you should make that your central question: for example, “Did crimes involving youth offenders become more organized and structured over the years" is a better question, from which comparing the structure in different years becomes part of the methodology to answer the question. More examples of possible questions for cooffending networks are provided below.
+
+Points Awarded | Requirement Description
+---------|----------
+2 points | Describes methodology for network analysis.
+2 points | Grader is convinced that the methodology makes sense for the question to be answered. Grader is convinced that no additional methodology within the bounds of techniques taught and discussed in this module could be applied beyond what was described. The grader should only consider additional methodology that adds meaningfully to the answer for the question: additions that simply repeat or confirm the presented results should not be considered by the grader. If a justification is provided for why a particular method was not used, the grader should be convinced by that argument.
+2 points | Presents results, including figures and/or statistics, which address the question of interest.
+2 points | The described methodology has been applied in complete and the results shown (that is, the author did not forget to include anything they discussed in the methodology.)
+0 points | Adequately discusses the results obtained.
+2 points | Question does not need to be successfully answered, but the grader should be convinced that the author has answered the question to the best ability of the methodology presented.
+1 point | Provides commentary on what was discovered, what were the limitations of the methods, what may have been surprising to discover, etc.
+1 point | Award this point if the question was successfully answered to the grader's satisfaction.  
+
+#### Question
+
+Was the reaction from "high rank" members of the organization to the police operations different than the reaction from "low rank" members?
+
+#### Methodology
+
+In order to analyze if the reaction from high rank members was different than the reaction from low rank members, we will use the centrality metrics we learned in class. We will use the following metrics:
+
+1. Take the dataset an use different centrality metrics to get the most relevant nodes from the network.
+2. Get the average of the metrics among the most relevant nodes and compare them against the behavior of the "least relevant" nodes.
+3. Analyze the evolution of the "important" versus the "less important" nodes over time. Check if the evolution changes depending on the different police interventions. Also analyze if the effects were amplified in the cases when a higher number of seizures were made.
+
+#### Results
+
+![Figure 5](../Images/report-project-figure1.png)
+*Top 10 highest values for each available centrality metric*
+
+By glancing at the figure above, it is clear that regardless of the centrality metric chosen, the set of nodes with the highest metric values will remain mostly the same:
+
+- n1 and n3: These appear in the first two places in all centrality metrics, except for betweenness centrality, where they occupy the 1sd and 3rd places, respectively. This makes sense as the nodes correspond to the mastermind of the operation (n1: Daniel Serero) and his right hand (n3: Pierre Perlini). An increase in average value is to be expected as they are better connected, receive and send the most information and because of all of the previous, they are considered one of the most important nodes in the network.
+- n12: Ernesto Morales, the principal organizer of the cocaine import. He displays a very high in and out-degree, page rank and betweenness.
+- n85: Wallace Lee, the accountant. Characterized by relatively high in and out-degree, left and right eigenvector centrality and Katz centrality.
+- n87: Patrick Lee, an investor. He has a high in-degree and a relatively high page rank and betweenness.
+- n76: Gabrielle Casale, marijuana recuperator. Her metrics are slightly lower that the previous node, placing generally in places 4-7, with a higher in and out degree, closeness, left/right eigenvector, betweenness and Katz centrality.
+- n83: Alain Levy, money transporter. Relatively high in in and out degree, left eigenvector centrality and Katz centrality.
+- n2: Not in the list of suspects. Has a relatively high closeness, page rank, slightly higher right eigenvector centrality and katz centrality.
+- n11: Samir Rabbat, provider in Morocco. High closeness, right eigenvector centrality and Katz centrality.
+
+These are some of the most important nodes fetched by inspection. Now we will get them programmatically, in a more quantitative way. This is done by getting the "n" nodes with the highest values for each of the centrality metrics, and then getting the nodes that get repeated the most:
+
+```python
+from collections import Counter
+
+# How many "important" and "non-important" players we want to compare
+num_nodes = 10
+
+# =========== MOST IMPORTANT PLAYERS =========== #
+
+# Get the nodes with the highest scores for each centrality measure
+highest_nodes = {
+    measure: [
+        node[0] for node in average[:10]
+    ] for measure, average in average_centrality_measures.items()
+}
+
+# Join all the lists of nodes into a single list
+all_highest_nodes = [
+    node for nodes in highest_nodes.values() for node in nodes
+]
+
+# Get the "num_nodes" most common nodes from "all_highest_nodes"
+highest_node_counts = Counter(all_highest_nodes).most_common(num_nodes)
+important_players = [node[0] for node in highest_node_counts]
+print("Important Players:", important_players)
+
+# =========== LEAST IMPORTANT PLAYERS ========== #
+
+# Get the nodes with the lowest scores for each centrality measure
+lowest_nodes = {
+    measure: [
+        node[0] for node in average[-10:]
+    ] for measure, average in average_centrality_measures.items()
+}
+
+# Join all the lists of nodes into a single list
+all_lowest_nodes = [
+    node for nodes in lowest_nodes.values() for node in nodes
+]
+
+# Get the "num_nodes" most common nodes from "all_lowest_nodes"
+lowest_node_counts = Counter(all_lowest_nodes).most_common(num_nodes)
+non_important_players = [node[0] for node in lowest_node_counts]
+print("Non-important Players:", non_important_players)
+```
+
+The resulting lists are:
+
+```python
+Important Players: ['n1', 'n12', 'n3', 'n76', 'n85', 'n83', 'n87', 'n88', 'n2', 'n6']
+Non-important Players: ['n110', 'n103', 'n95', 'n57', 'n60', 'n106', 'n109', 'n104', 'n105', 'n91']
+```
+
+Now that an adequate subset of the most important nodes has been identified, we can take the same number of non-important nodes, and then we can average their statistics to compare the evolution of an "average important node" against the evolution of an "average non-important node".
+
+![Figure 6](../Images/report-project-figure2.png)
+
+Now we got two plots, one for the "average important player" and one for the "average non-important player". It's also worth mentioning, before starting the analysis, that each of the centrality metrics are not meant to be compared directly to each other. Here, the different metrics for the "non-important" and "important" players were put next to each other, in order to analyze their general tendency, instead of comparing rough values.
+
+With that said, I think the graph by itself demonstrates an interesting difference between the two groups. The "important" players obviously have higher values for all of the metrics, while the non-important players show much lower values. However, whats interesting is that they both display "spikes" in connectivity in different time periods. It seems like the important players start with generally low levels of centrality, slowly grow in closeness and right and left eigenvector centrality until phase 3. Afterwards, came the first seizure, causing a small decline in the eigenvector, closeness and out-degree centrality. Then came a big boom in activity, with almost all metrics reaching their peak in phase 5, however, then came the aggressive 3 seizures of phase 6, causing a sharp decline in all metrics. After that, the important players seem to level out in a slight decline, until phase 8, when every metric starts going down to levels even lower than at the beginning signaling the end of the operation.
+
+The non-important players, on the other hand, show a completely different behavior: They show no activity during the first 2 phases (probably due to the operation being set up). Then, they reach a large peak on phase 3, and then immediately come down in phase 4, once again probably because of the first seizure. While their bosses are setting up the next part of the operation where they shift to trafficking cocaine as well as marijuana, the lower ranks remain inactive, until phase 6, when the operation gets relaunched, and a big surge of activity until the end of the operation. What's interesting is that the non-important players actually grow in importance in the last phase, while the important players are actually losing connections. This could be either because rumors started circulating saying that they were going to be captured (increasing connectivity in that part of the network) or because at the end of the operation, the higher ups decided to simply leave the operation running without them while setting it into high gear.
+
+In conclusion, there was a change.
