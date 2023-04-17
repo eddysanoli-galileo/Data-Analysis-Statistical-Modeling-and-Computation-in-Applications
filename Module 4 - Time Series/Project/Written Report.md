@@ -40,4 +40,17 @@ Name: eddysanoli
 
 ## Problem 3: CPI and BER Data Analysis
 
-Hello
+### Converting to Inflation Rates
+
+1. Repeat the model fitting and evaluation procedure from the previous page for the monthly inflation rate computed from CPI.
+
+    Your response should include:
+
+   - (1 point) Description of how you compute the monthly inflation rate from CPI and a plot of the monthly inflation rate. (You may choose to work with log of the CPI.)
+   - (2 points) Description of how the data has been detrended and a plot of the detrended data.
+   - (3 points) Statement of and justification for the chosen $AR(p)$ model. Include plots and reasoning.
+   - (3 points) Description of the final model; computation and plots of the 1 month-ahead forecasts for the validation data. In your plot, overlay predictions on top of the data.
+
+2. (3 points) Which $AR(p)$ model gives the best predictions? Include a plot of the $RMSE$ against different lags $p$ for the model.
+
+3. (3 points) Overlay your estimates of monthly inflation rates and plot them on the same graph to compare. (There should be 3 lines, one for each datasets, plus the prediction, over time from September 2013 onward.)
