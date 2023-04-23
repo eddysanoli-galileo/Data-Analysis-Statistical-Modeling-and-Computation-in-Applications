@@ -66,15 +66,54 @@ Name: eddysanoli
 
 ### Converting to Inflation Rates
 
-1. Repeat the model fitting and evaluation procedure from the previous page for the monthly inflation rate computed from CPI.
+#### Exercise 1
 
-    Your response should include:
+Repeat the model fitting and evaluation procedure from the previous page for the monthly inflation rate computed from CPI.
 
-   - (1 point) Description of how you compute the monthly inflation rate from CPI and a plot of the monthly inflation rate. (You may choose to work with log of the CPI.)
-   - (2 points) Description of how the data has been detrended and a plot of the detrended data.
-   - (3 points) Statement of and justification for the chosen $AR(p)$ model. Include plots and reasoning.
-   - (3 points) Description of the final model; computation and plots of the 1 month-ahead forecasts for the validation data. In your plot, overlay predictions on top of the data.
+(1 point) Description of how you compute the monthly inflation rate from CPI and a plot of the monthly inflation rate. (You may choose to work with log of the CPI.)
 
-2. (3 points) Which $AR(p)$ model gives the best predictions? Include a plot of the $RMSE$ against different lags $p$ for the model.
+- The equation chosen to calculate the monthly inflation rate was the one that did not use the log of the CPI, as it returned a slightly higher value. I would prefer to overestimate the inflation rate rather than underestimate it, however, the difference is very small. A plot of the monthly inflation rate is shown below.
 
-3. (3 points) Overlay your estimates of monthly inflation rates and plot them on the same graph to compare. (There should be 3 lines, one for each datasets, plus the prediction, over time from September 2013 onward.)
+    ![Non Log Inflation Rate](../Images/inflation_rate_from_cpi_non_log.png)
+
+(2 points) Description of how the data has been detrended and a plot of the detrended data.
+
+- Initially tried to detrend the data using a linear fit like how it was done for the CPI. However, when checking the stationarity of the resulting residuals through a Dickey-Fuller test, the results showed that the data was still not stationary. This could probably be because the inflation rate could be technically considered a differentiation of the CPI already, so the linear trend has been already removed.
+
+    ![Inflation Rate Linear Fit](../Images/inflation_rate_linear_fit.png)
+    ![Detrended Inflation Rate](../Images/inflation_rate_detrended.png)
+
+    So, what I decided to do was to re-differentiate the data to remove any remaining trends or seasonality. After just 1 additional differentiation, the data became stationary:
+
+    ![differentiation](../Images/inflation_rate_differentiation.PNG)
+
+(3 points) Statement of and justification for the chosen AR(p) model. Include plots and reasoning.
+
+- The order "p" for the AR model was selected by using three elements at once: The ACF plot, the AIC and BIC criterions and the RMSE values for different lags. I created a small parameter sweep for 10 different lags and calculated the different metrics for each one. Then I plotted the metric evolution (AIC, BIC and RMSE) for each lag.
+
+    ![ACF and PACF](../Images/inflation_rate_acf_and_pacf.png)
+    ![AIC, BIC, RMSE](../Images/inflation_rate_aic_bic_and_rmse.png)
+
+    The ACF plot shows that there aren't many strong correlations, just maybe one with the third lag in both the PACF and ACF plots. For the AIC and BIC criterions, the ideal lag (with the highest dropoff) seems to be around 4, while the RMSE values seem to indicate that the lower the lag, the better the model. So I decided to go with a very simple AR(1) model.
+
+    Its worth mentioning that we could also try fitting an MA model to the data, to see if the resulting residuals are smaller. However, the use of a simple AR model seems to be enough to generate a relatively good fit.
+
+(3 points) Description of the final model; computation and plots of the 1 month-ahead forecasts for the validation data. In your plot, overlay predictions on top of the data.
+
+- The final model was an AR(1) model applied after a differentiation. Since removing a fitted linear trend to the data didn't seem to make the series stationary, I decided to apply a second differentiation to the data (as the inflation rate already consists of a differentiation of the CPI, which explains why the clear linear trend of the CPI disappeared in the inflation rate). Once this was done, the series became stationary, and an AR(1) model was applied based on the AIC and BIC criterions. The final results generated a relatively satisfactory fit, as the RMSE was 3.445.
+
+![Alt text](../Images/final_model_predictions.png)
+
+Unfortunately I couldn't find a way to properly overlay the predictions on top of the data.
+
+#### Exercise 2
+
+(3 points) Which AR(p) model gives the best predictions? Include a plot of the RMSE against different lags "p" for the model.
+
+![AIC, BIC, RMSE](../Images/inflation_rate_aic_bic_and_rmse.png)
+
+In my opinion, the p = 1 AR model gives the best predictions as explained before, however, it could be argued that not applying an AR model at all could also be a good choice, as an MA model could be applied with similar results.
+
+#### Exercise 3
+
+(3 points) Overlay your estimates of monthly inflation rates and plot them on the same graph to compare. (There should be 3 lines, one for each datasets, plus the prediction, over time from September 2013 onward.)
