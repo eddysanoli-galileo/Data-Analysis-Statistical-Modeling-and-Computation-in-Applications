@@ -1,4 +1,4 @@
-from typing import Union, Tuple
+from typing import Union, Tuple, Optional
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
@@ -104,10 +104,13 @@ def plot_particle_simulation(
     v_t: np.ndarray,
     land_mask: np.ndarray,
     end_timestep: int,
+    custom_ax: Optional[plt.Axes] = None,
+    quivers: bool = True,
 ):
     """
     Given the velocity and position history of a particle flow simulation, plot the
-    result of a simulation after a given number of time steps. 
+    result of a simulation after a given number of time steps. Can be used for animations
+    by calling this function from within the "update" function of the FuncAnimation class.
 
     Parameters
     ----------
@@ -137,6 +140,12 @@ def plot_particle_simulation(
         in the history arrays, as well as the velocity array.
     """
 
+    # If no custom axis is given, create a new figure
+    if custom_ax is None:
+        _, ax = plt.subplots()
+    else:
+        ax = custom_ax
+
     # Number of particles
     N = x_history.shape[1]
 
@@ -151,21 +160,33 @@ def plot_particle_simulation(
     # them to get the correct shape in the map ([time, Y, X] -> [time, X, Y])
     speed = np.transpose(speed, (0, 2, 1))
 
+    # The position and velocity histories contain 1 extra time step that can
+    # be considered as t= -1. However, the speed only contains the time steps
+    # from t=0 to t=T-1. We duplicate the last time step of the speed to match
+    # the number of time steps in the position and velocity histories.
+    speed = np.concatenate(
+        (
+            speed,
+            speed[-1, :, :].reshape(1, speed.shape[1], speed.shape[2])
+        ),
+        axis=0
+    )
+
     # Plot the speed at the given time step (inverted grey scale)
-    plt.imshow(speed[end_timestep, :, :], cmap='gray_r')
+    ax.imshow(speed[end_timestep, :, :], cmap='gray_r')
 
     # ================ TRAJECTORIES ================ #
 
     # Get the X and Y coordinates of the particles
-    x_coords = x_history[:end_timestep, :, 1]
-    y_coords = x_history[:end_timestep, :, 0]
+    x_coords = x_history[:(end_timestep+1), :, 1]
+    y_coords = x_history[:(end_timestep+1), :, 0]
 
     # Plot the trajectories of the particles up to the given time step
     for _ in range(N):
-        plt.plot(x_coords, y_coords, linewidth=0.1)
+        ax.plot(x_coords, y_coords, linewidth=0.1)
 
     # Plot the end positions of the particles as yellow dots
-    plt.scatter(
+    ax.scatter(
         x_coords[-1], y_coords[-1],
         marker='o',
         color='orange',
@@ -175,39 +196,41 @@ def plot_particle_simulation(
 
     # ================ END VELOCITY ================ #
 
-    # Get the end positions of the particles
-    xt_last = x_history[end_timestep, :, :]
-    pos_x_last = xt_last[:, 1]
-    pos_y_last = xt_last[:, 0]
+    if quivers:
 
-    # Get the end velocities of the particles
-    # (Since we already converted the X_history array back to indexes, the positions
-    # can be used to directly index the Vx and Vy arrays)
-    v_x_end = v_history[end_timestep, :, 1]
-    v_y_end = v_history[end_timestep, :, 0]
+        # Get the end positions of the particles
+        xt_last = x_history[end_timestep, :, :]
+        pos_x_last = xt_last[:, 1]
+        pos_y_last = xt_last[:, 0]
 
-    # The Y-axis velocities are flipped, so we need to flip them back
-    v_y_end = -v_y_end
+        # Get the end velocities of the particles
+        # (Since we already converted the X_history array back to indexes, the positions
+        # can be used to directly index the Vx and Vy arrays)
+        v_x_end = v_history[end_timestep, :, 1]
+        v_y_end = v_history[end_timestep, :, 0]
 
-    # # Get the magnitude (speed) of the end velocities
-    speed = np.sqrt(v_x_end**2 + v_y_end**2)
+        # The Y-axis velocities are flipped, so we need to flip them back
+        v_y_end = -v_y_end
 
-    # # If the magnitude of the end velocity is 0, set it to 1 to avoid division by 0
-    speed[speed == 0] = 1
+        # # Get the magnitude (speed) of the end velocities
+        speed = np.sqrt(v_x_end**2 + v_y_end**2)
 
-    # Normalize the end velocities
-    v_x_end = (v_x_end / speed)
-    v_y_end = (v_y_end / speed)
+        # # If the magnitude of the end velocity is 0, set it to 1 to avoid division by 0
+        speed[speed == 0] = 1
 
-    # Plot the direction of the velocity at the end of the simulation
-    # (Divide by 3 to convert from km/h to index/h)
-    plt.quiver(
-        pos_x_last, pos_y_last,
-        v_x_end, v_y_end,
-        color='red',
-        scale=20,
-        width=0.004,
-    )
+        # Normalize the end velocities
+        v_x_end = (v_x_end / speed)
+        v_y_end = (v_y_end / speed)
+
+        # Plot the direction of the velocity at the end of the simulation
+        # (Divide by 3 to convert from km/h to index/h)
+        ax.quiver(
+            pos_x_last, pos_y_last,
+            v_x_end, v_y_end,
+            color='red',
+            scale=20,
+            width=0.004,
+        )
 
     # ==================== LAND ==================== #
 
@@ -222,13 +245,16 @@ def plot_particle_simulation(
     flipped_mask = np.transpose(land_mask, (1, 0))
 
     # Plot the mask of the land in black
-    plt.imshow(flipped_mask, cmap=custom_cmap)
+    ax.imshow(flipped_mask, cmap=custom_cmap)
 
     # ============= FINAL PLOT SETTINGS ============ #
 
-    plt.title(f'Particle Trajectories (t = {end_timestep*3}h)')
-    plt.xlabel('X (km)')
-    plt.ylabel('Y (km)')
-    plt.show()
+    ax.set_title(f'Particle Trajectories (t = {end_timestep*3}h)')
+    ax.set_xlabel('X (km)')
+    ax.set_ylabel('Y (km)')
+
+    # If no custom axis is given, show the plot
+    if custom_ax is None:
+        plt.show()
 
     return
