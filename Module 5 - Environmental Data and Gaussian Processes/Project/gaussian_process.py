@@ -5,23 +5,24 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from tqdm import tqdm
 
+
 # ============================================== #
-# SQUARED EXPONENTIAL KERNEL                     #
+# RADIAL BASIS KERNEL                            #
 # ============================================== #
 
-
-def squared_exp_kernel(X, l, sigma):
+def radial_basis_kernel(X, l, sigma):
     """
-    Squared exponential kernel function. 
+    Radial basis kernel (RBF), also known as the squared exponential 
+    kernel function. 
     """
 
     # Get ||zi - z2|| for each pair of points in the dataset
     # (Euclidean distance between all pairs of points in X)
-    m, n = np.meshgrid(X, X)
-    zi_zj = (m - n)
+    i, j = np.meshgrid(X, X)
+    zi_zj = j - i
 
     # Compute the kernel
-    K = sigma**2 * np.exp(-zi_zj**2 / (l**2))
+    K = sigma * np.exp(-(zi_zj**2) / (2*l**2))
 
     return K
 
@@ -35,7 +36,7 @@ def predict_conditional_mean_and_var(
     x2: np.ndarray,
     y2: np.ndarray,
     kernel_args: tuple,
-    kernel: Callable[..., np.ndarray] = squared_exp_kernel,
+    kernel: Callable[..., np.ndarray] = radial_basis_kernel,
     tau: float = 0.001,
     moving_average_window_size: int = 5,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -123,6 +124,7 @@ def predict_conditional_mean_and_var(
     sorting_indexes = np.argsort(x)
 
     # We sort both the X array and its mask
+    x = x[sorting_indexes]
     sorted_mask = mask[sorting_indexes]
 
     # Assign new indexes to the sorted X array
@@ -176,7 +178,7 @@ def optimize_kernel_params(
     std_range: np.ndarray,
     tau: float = 0.001,
     num_folds: int = 10,
-    kernel: Callable[..., np.ndarray] = squared_exp_kernel,
+    kernel: Callable[..., np.ndarray] = radial_basis_kernel,
 ) -> Tuple[float, float, pd.DataFrame]:
     """
     Optimize the kernel parameters for the Gaussian Process.
@@ -286,8 +288,8 @@ def optimize_kernel_params(
     # Convert the optimization results to a DataFrame
     results_df = pd.DataFrame(optimization_results)
 
-    # Get the row with the lowest log-likelihood
-    optimal_row = int(results_df["log_likelihood"].idxmin())
+    # Get the row with the highest log-likelihood
+    optimal_row = int(results_df["log_likelihood"].idxmax())
     optimal_result = results_df.iloc[optimal_row, :]
 
     # Get the optimal parameters
