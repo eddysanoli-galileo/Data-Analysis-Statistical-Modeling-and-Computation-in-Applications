@@ -522,7 +522,6 @@ def plot_grid_search_results(
     )
     ax1.set_xlabel(vx_param1_name)
     ax1.set_ylabel(vx_param2_name)
-    ax1.set_title('Log Likelihood for $V_x$')
     fig.colorbar(scatter_plot1, ax=ax1)
 
     # Get the optimal parameters for the X component
@@ -540,6 +539,17 @@ def plot_grid_search_results(
         s=100,
         marker='x',
     )
+
+    title_string = f"Log Likelihood for $V_x$\n"
+
+    # Add the optimal parameters to the title
+    for param_name, param_value in optimal_params_vx.items():
+        title_string += f"{param_name} = {param_value:.2f}, "
+
+    # Remove the last comma and space
+    title_string = title_string[:-2]
+
+    ax1.set_title(title_string)
 
     # =================== Y AXIS =================== #
 
@@ -565,7 +575,6 @@ def plot_grid_search_results(
     )
     ax2.set_xlabel(vy_param1_name)
     ax2.set_ylabel(vy_param2_name)
-    ax2.set_title('Log Likelihood for $V_y$')
     fig.colorbar(scatter_plot2, ax=ax2)
 
     # Get the optimal parameters for the Y component
@@ -583,6 +592,19 @@ def plot_grid_search_results(
         s=100,
         marker='x',
     )
+
+    title_string = f"Log Likelihood for $V_y$\n"
+
+    # Add the optimal parameters to the title
+    for param_name, param_value in optimal_params_vy.items():
+        title_string += f"{param_name} = {param_value:.2f}, "
+
+    # Remove the last comma and space
+    title_string = title_string[:-2]
+
+    ax2.set_title(title_string)
+
+    # ============ FINAL FIGURE SETTINGS =========== #
 
     # Set the title of the figure
     if custom_title_text is None:
