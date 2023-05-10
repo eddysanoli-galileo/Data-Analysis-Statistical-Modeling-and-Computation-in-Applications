@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Union, Tuple
+from typing import Callable, Dict, Optional, Union, Tuple
 from sklearn.model_selection import KFold
 import numpy as np
 import matplotlib.pyplot as plt
@@ -229,7 +229,7 @@ def predict_conditional_mean_and_var(
 # ============================================== #
 
 
-def get_optimal_params_from_df(df: pd.DataFrame) -> Tuple[np.float64, np.float64]:
+def get_optimal_params_from_df(df: pd.DataFrame) -> Dict[str, np.float64]:
     """
     Given a dataframe with the results of a kernel optimization, return the optimal
     parameters for the kernel.
@@ -239,14 +239,13 @@ def get_optimal_params_from_df(df: pd.DataFrame) -> Tuple[np.float64, np.float64
     optimal_row = int(df["log_likelihood"].idxmax())
     optimal_result = df.iloc[optimal_row, :]
 
-    # Get the optimal parameters
-    optimal_l = optimal_result["l"]
-    optimal_std = optimal_result["standard_deviation"]
+    # Drop the "log_likelihood" column to just leave the parameters
+    optimal_result = optimal_result.drop("log_likelihood")
 
-    assert (type(optimal_l) == np.float64)
-    assert (type(optimal_std) == np.float64)
+    # Turn the result into a dictionary
+    optimal_params = optimal_result.to_dict()
 
-    return optimal_l, optimal_std
+    return optimal_params
 
 
 # ============================================== #
@@ -256,12 +255,11 @@ def get_optimal_params_from_df(df: pd.DataFrame) -> Tuple[np.float64, np.float64
 
 def optimize_kernel_params(
     data: np.ndarray,
-    l_range: np.ndarray,
-    std_range: np.ndarray,
+    param_ranges: Dict[str, np.ndarray],
     tau: float = 0.001,
     num_folds: int = 10,
     kernel: Callable[..., np.ndarray] = radial_basis_kernel,
-) -> Tuple[float, float, pd.DataFrame]:
+) -> Tuple[Dict[str, np.float64], pd.DataFrame]:
     """
     Optimize the kernel parameters for the Gaussian Process.
 
@@ -269,6 +267,10 @@ def optimize_kernel_params(
     ----------
     data : np.ndarray
         Array containing the data to be used for the Gaussian Process.
+
+    param_ranges : Tuple[np.ndarray, ...]
+        Tuple containing the ranges for the kernel parameters used for the
+        grid search.
 
     l_range : np.ndarray
         Array with all of the values that want to be tested for the length
@@ -291,18 +293,31 @@ def optimize_kernel_params(
         squared exponential kernel will be used by default.
     """
 
+    # ============ PRE PROCESSING RANGES =========== #
+
+    # Get all the actual ranges into a tuple
+    param_range_tuple = (
+        value for key, value in param_ranges.items()
+    )
+
+    # Extract only the parameter names
+    param_names = param_ranges.keys()
+
     # ================ KERNEL PARAMS =============== #
 
     # Create a meshgrid with the parameter ranges
-    l_grid, std_grid = np.meshgrid(l_range, std_range)
+    # (The *, stores all the returned values in a tuple)
+    *grids, = np.meshgrid(*param_range_tuple)
 
     # Flatten the grids to create a list of all the possible combinations
-    l_list = l_grid.flatten()
-    std_list = std_grid.flatten()
+    param_lists = []
+    for grid in grids:
+        param_lists.append(grid.flatten())
 
-    # Stack the parameters to create a single array with shape (n, 2)
-    # Each row will consist of a different combination of parameters
-    param_pairs = np.stack([l_list, std_list], axis=1)
+    # Turn the list of arrays into a single array with shape
+    # (n, num_params). Each row will consist of a different combination of
+    # parameters
+    param_combinations = np.array(param_lists).T
 
     # =========== PARAMETER OPTIMIZATION =========== #
 
@@ -310,13 +325,7 @@ def optimize_kernel_params(
     optimization_results: list[dict[str, Union[float, int]]] = []
 
     # Go through each parameter pair in the list
-    for params in tqdm(param_pairs):
-
-        # ================= PARAMETERS ================= #
-
-        # Get the parameters for the kernel
-        l = params[0]
-        std = params[1]
+    for params in tqdm(param_combinations):
 
         # ============== CROSS VALIDATION ============== #
 
@@ -337,7 +346,7 @@ def optimize_kernel_params(
                 x2=x_train,
                 y2=y_train,
                 tau=tau,
-                kernel_args=(l, std),
+                kernel_args=tuple(params),
                 kernel=kernel,
             )
 
@@ -359,21 +368,23 @@ def optimize_kernel_params(
 
         # =================== RESULTS ================== #
 
-        # Add the total log-likelihood of the current parameter pair to the
-        # dictionary that documents the parameters and their likelihood
-        optimization_results.append({
-            'l': l,
-            'standard_deviation': std,
-            'log_likelihood': total_log_likelihood
-        })
+        # Add the value for each of the parameters to the dictionary
+        results_dict = dict(zip(param_names, params))
+
+        # Add the log-likelihood of the current parameter pair to the dictionary
+        results_dict['log_likelihood'] = total_log_likelihood
+
+        # Add the total log-likelihood of the current parameter set to the
+        # list of results
+        optimization_results.append(results_dict)
 
     # Convert the optimization results to a DataFrame
     results_df = pd.DataFrame(optimization_results)
 
     # Get the optimal parameters
-    optimal_l, optimal_std = get_optimal_params_from_df(results_df)
+    optimal_params = get_optimal_params_from_df(results_df)
 
-    return optimal_l, optimal_std, results_df
+    return optimal_params, results_df
 
 
 # ============================================== #
@@ -384,6 +395,7 @@ def plot_grid_search_results(
     x_results_df: pd.DataFrame,
     y_results_df: pd.DataFrame,
     position: np.ndarray,
+    params_to_plot: Optional[list[str]] = None,
     custom_title_text: Optional[str] = None,
     save_to_file: bool = False,
     filename: Optional[str] = None,
@@ -406,6 +418,17 @@ def plot_grid_search_results(
     position : np.ndarray
         Position of the point to plot the results for. This is used as the title
         of the plot.
+
+    custom_title_text : str, optional
+        Custom text to add to the title of the plot. If not specified, the
+        default title will be used: Position (X, Y).
+
+    save_to_file : bool, optional
+        Whether to save the plot to a file.
+
+    filename : str, optional
+        Name of the file to save the plot to. If not specified, a default will be
+        used.
     """
 
     # Plot two subplots side by side, one for the X component and one for the Y
@@ -413,51 +436,85 @@ def plot_grid_search_results(
     # combination of "l" and "sigma"
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
 
+    # =================== X AXIS =================== #
+
+    # Get the values and names for the columns to plot
+    if params_to_plot is None:
+        vx_param1 = x_results_df[x_results_df.columns[0]]
+        vx_param2 = x_results_df[x_results_df.columns[1]]
+        vx_param1_name = x_results_df.columns[0]
+        vx_param2_name = x_results_df.columns[1]
+    else:
+        vx_param1 = x_results_df[params_to_plot[0]]
+        vx_param2 = x_results_df[params_to_plot[1]]
+        vx_param1_name = params_to_plot[0]
+        vx_param2_name = params_to_plot[1]
+
     # Plot the heatmap for the X component
     scatter_plot1 = ax1.scatter(
-        x_results_df['l'],
-        x_results_df['standard_deviation'],
+        vx_param1,
+        vx_param2,
         c=x_results_df['log_likelihood'],
         cmap='viridis',
         s=100,
     )
-    ax1.set_xlabel('l')
-    ax1.set_ylabel('Standard Deviation ($\sigma$)')
+    ax1.set_xlabel(vx_param1_name)
+    ax1.set_ylabel(vx_param2_name)
     ax1.set_title('Log Likelihood for $V_x$')
     fig.colorbar(scatter_plot1, ax=ax1)
 
     # Get the optimal parameters for the X component
-    optimal_l_x, optimal_std_x = get_optimal_params_from_df(x_results_df)
+    optimal_params_vx = get_optimal_params_from_df(x_results_df)
+
+    # Convert the optimal parameters (dict) into a list
+    optimal_param_values_vx = list(optimal_params_vx.values())
 
     # Plot the optimal parameters on the heatmap as a red dot
     ax1.scatter(
-        optimal_l_x,
-        optimal_std_x,
+        optimal_param_values_vx[0],
+        optimal_param_values_vx[1],
         c='red',
         s=100,
         marker='x',
     )
 
+    # =================== Y AXIS =================== #
+
+    # Get the values and names for the columns to plot
+    if params_to_plot is None:
+        vy_param1 = y_results_df[y_results_df.columns[0]]
+        vy_param2 = y_results_df[y_results_df.columns[1]]
+        vy_param1_name = y_results_df.columns[0]
+        vy_param2_name = y_results_df.columns[1]
+    else:
+        vy_param1 = y_results_df[params_to_plot[0]]
+        vy_param2 = y_results_df[params_to_plot[1]]
+        vy_param1_name = params_to_plot[0]
+        vy_param2_name = params_to_plot[1]
+
     # Plot the heatmap for the Y component
     scatter_plot2 = ax2.scatter(
-        y_results_df['l'],
-        y_results_df['standard_deviation'],
+        vy_param1,
+        vy_param2,
         c=y_results_df['log_likelihood'],
         cmap='viridis',
         s=100,
     )
-    ax2.set_xlabel('l')
-    ax2.set_ylabel('Standard Deviation ($\sigma$)')
+    ax2.set_xlabel(vy_param1_name)
+    ax2.set_ylabel(vy_param2_name)
     ax2.set_title('Log Likelihood for $V_y$')
     fig.colorbar(scatter_plot2, ax=ax2)
 
     # Get the optimal parameters for the Y component
-    optimal_l_y, optimal_std_y = get_optimal_params_from_df(y_results_df)
+    optimal_params_vy = get_optimal_params_from_df(y_results_df)
+
+    # Convert the optimal parameters (dict) into a list
+    optimal_param_values_vy = list(optimal_params_vy.values())
 
     # Plot the optimal parameters on the heatmap as a red dot
     ax2.scatter(
-        optimal_l_y,
-        optimal_std_y,
+        optimal_param_values_vy[0],
+        optimal_param_values_vy[1],
         c='red',
         s=100,
         marker='x',
