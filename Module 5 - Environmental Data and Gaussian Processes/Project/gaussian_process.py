@@ -1,9 +1,46 @@
-from typing import Callable, Dict, Optional, Union, Tuple
+from typing import Callable, Dict, Literal, Optional, Union, Tuple
 from sklearn.model_selection import KFold
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from tqdm import tqdm
+
+# ============================================== #
+# ADD INTERMEDIATE POINTS                        #
+# ============================================== #
+
+
+def add_intermediate_points(x: np.ndarray, n: int) -> np.ndarray:
+    """
+    Add points in between the points in the array x. For example, if we have
+    the array [1, 2, 3, 4, 5] and we want to add 1 point in between each
+    measurement, we will get the array [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5].
+
+    Parameters
+    ----------
+    x : np.ndarray
+        Array containing an increasing sequence
+
+    n : int
+        Number of points to add in between each measurement
+    """
+    # Add 1 to the number of points to add in between each measurement
+    # so that if 3 is given, the span between measurements will be divided
+    # into 4 parts, that end up with 3 limits in between
+    n += 1
+
+    interpolated_x = []
+
+    # Loop through each point in the array
+    for i, val in enumerate(x):
+        interpolated_x.append(val)
+
+        # Loop through each point to add in between each measurement
+        for j in range(1, n):
+            if i < len(x) - 1:
+                interpolated_x.append(val + j * (x[i+1] - x[i])/n)
+
+    return np.array(interpolated_x)
 
 
 # ============================================== #
@@ -94,6 +131,11 @@ def predict_conditional_mean_and_var(
     x2: np.ndarray,
     y2: np.ndarray,
     kernel_args: tuple,
+    mean_prediction_method: Literal[
+        "moving_average",
+        "zero",
+        "mean"
+    ] = "moving_average",
     kernel: Callable[..., np.ndarray] = radial_basis_kernel,
     tau: float = 0.001,
     moving_average_window_size: int = 5,
@@ -127,18 +169,32 @@ def predict_conditional_mean_and_var(
         to use for the moving average.
     """
 
-    # Get the moving average of the training data to use as the
-    # mean for the Gaussian Process
-    mu_1 = np.convolve(
-        x1,
-        np.ones(moving_average_window_size)/moving_average_window_size,
-        mode='same'
-    )
-    mu_2 = np.convolve(
-        x2,
-        np.ones(moving_average_window_size)/moving_average_window_size,
-        mode='same'
-    )
+    # ================ MU ESTIMATION =============== #
+
+    if mean_prediction_method == "moving_average":
+        mu_1 = np.convolve(
+            x1,
+            np.ones(moving_average_window_size)/moving_average_window_size,
+            mode='same'
+        )
+        mu_2 = np.convolve(
+            x2,
+            np.ones(moving_average_window_size)/moving_average_window_size,
+            mode='same'
+        )
+
+    elif mean_prediction_method == "zero":
+        mu_1 = 0
+        mu_2 = 0
+
+    elif mean_prediction_method == "mean":
+        mu_1 = np.mean(x1)
+        mu_2 = np.mean(x2)
+
+    else:
+        raise ValueError(
+            f"Invalid value for mean_prediction_method: {mean_prediction_method}"
+        )
 
     # ============== X1 AND X2 INDICES ============= #
 
@@ -256,6 +312,11 @@ def get_optimal_params_from_df(df: pd.DataFrame) -> Dict[str, np.float64]:
 def optimize_kernel_params(
     data: np.ndarray,
     param_ranges: Dict[str, np.ndarray],
+    mean_prediction_method: Literal[
+        "moving_average",
+        "zero",
+        "mean"
+    ] = "moving_average",
     tau: float = 0.001,
     num_folds: int = 10,
     kernel: Callable[..., np.ndarray] = radial_basis_kernel,
@@ -346,6 +407,7 @@ def optimize_kernel_params(
                 x2=x_train,
                 y2=y_train,
                 tau=tau,
+                mean_prediction_method=mean_prediction_method,
                 kernel_args=tuple(params),
                 kernel=kernel,
             )
@@ -466,13 +528,14 @@ def plot_grid_search_results(
     # Get the optimal parameters for the X component
     optimal_params_vx = get_optimal_params_from_df(x_results_df)
 
-    # Convert the optimal parameters (dict) into a list
-    optimal_param_values_vx = list(optimal_params_vx.values())
+    # Extract the optimal parameters for the X component
+    optimal_param1_x = optimal_params_vx[str(vx_param1_name)]
+    optimal_param2_x = optimal_params_vx[str(vx_param2_name)]
 
     # Plot the optimal parameters on the heatmap as a red dot
     ax1.scatter(
-        optimal_param_values_vx[0],
-        optimal_param_values_vx[1],
+        optimal_param1_x,
+        optimal_param2_x,
         c='red',
         s=100,
         marker='x',
@@ -508,13 +571,14 @@ def plot_grid_search_results(
     # Get the optimal parameters for the Y component
     optimal_params_vy = get_optimal_params_from_df(y_results_df)
 
-    # Convert the optimal parameters (dict) into a list
-    optimal_param_values_vy = list(optimal_params_vy.values())
+    # Extract the optimal parameters for the Y component
+    optimal_param1_y = optimal_params_vy[str(vy_param1_name)]
+    optimal_param2_y = optimal_params_vy[str(vy_param2_name)]
 
     # Plot the optimal parameters on the heatmap as a red dot
     ax2.scatter(
-        optimal_param_values_vy[0],
-        optimal_param_values_vy[1],
+        optimal_param1_y,
+        optimal_param2_y,
         c='red',
         s=100,
         marker='x',
