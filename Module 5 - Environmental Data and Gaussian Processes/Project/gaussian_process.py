@@ -10,10 +10,26 @@ from tqdm import tqdm
 # RADIAL BASIS KERNEL                            #
 # ============================================== #
 
-def radial_basis_kernel(X, l, sigma):
+def radial_basis_kernel(X: np.ndarray, l: float, sigma: float) -> np.ndarray:
     """
     Radial basis kernel (RBF), also known as the squared exponential 
-    kernel function. 
+    kernel function. This is the most commonly used kernel function because
+    of its properties.
+
+    Parameters
+    ----------
+    X : np.ndarray
+        Array containing the indices or "X" values of the data that we want to make
+        predictions for.
+
+    l : float
+        Length scale parameter. This parameter controls the length of the "wiggles" in
+        the function. In general, you wont be able to extrapolate more than "l" units
+        away from the data.
+
+    sigma : float
+        Output variance. Average distance of the function away from its mean. This
+        is basically just a scaling factor for the function.
     """
 
     # Get ||zi - z2|| for each pair of points in the dataset
@@ -23,6 +39,48 @@ def radial_basis_kernel(X, l, sigma):
 
     # Compute the kernel
     K = sigma * np.exp(-(zi_zj**2) / (2*l**2))
+
+    return K
+
+# ============================================== #
+# RATIONAL QUADRATIC KERNEL                      #
+# ============================================== #
+
+
+def rational_quadratic_kernel(X: np.ndarray, l: float, sigma: float, alpha: float):
+    """
+    Rational quadratic kernel. This kernel is a generalization of the RBF kernel
+    that allows for different length scales for different dimensions of the input.
+    Good for regression or classification tasks, but it can falter for functions with
+    discontinuities.
+
+    Parameters
+    ----------
+    X : np.ndarray
+        Array containing the indices or "X" values of the data that we want to make
+        predictions for.
+
+    l : float
+        Length scale parameter. This parameter controls the length of the "wiggles" in
+        the function.
+
+    sigma : float
+        Output variance. Average distance of the function away from its mean. This
+        is basically just a scaling factor for the function.
+
+    alpha : float
+        Scale mixture parameter. This parameter controls the relative weighting of
+        large-scale and small-scale variations of the function. If alpha is large,
+        it will turn into an RBF kernel.
+    """
+
+    # Get ||zi - z2|| for each pair of points in the dataset
+    # (Euclidean distance between all pairs of points in X)
+    i, j = np.meshgrid(X, X)
+    zi_zj = j - i
+
+    # Compute the kernel
+    K = sigma * (1 + ((zi_zj**2) / (2*alpha*l**2)))**(-alpha)
 
     return K
 
@@ -166,6 +224,30 @@ def predict_conditional_mean_and_var(
 
     return mu_1_given_2, sigma_1_given_2, sigma_22_noise
 
+# ============================================== #
+# GET OPTIMAL PARAMETERS                         #
+# ============================================== #
+
+
+def get_optimal_params_from_df(df: pd.DataFrame) -> Tuple[np.float64, np.float64]:
+    """
+    Given a dataframe with the results of a kernel optimization, return the optimal
+    parameters for the kernel.
+    """
+
+    # Get the row with the highest log-likelihood
+    optimal_row = int(df["log_likelihood"].idxmax())
+    optimal_result = df.iloc[optimal_row, :]
+
+    # Get the optimal parameters
+    optimal_l = optimal_result["l"]
+    optimal_std = optimal_result["standard_deviation"]
+
+    assert (type(optimal_l) == np.float64)
+    assert (type(optimal_std) == np.float64)
+
+    return optimal_l, optimal_std
+
 
 # ============================================== #
 # OPTIMIZE KERNEL PARAMS                         #
@@ -288,13 +370,8 @@ def optimize_kernel_params(
     # Convert the optimization results to a DataFrame
     results_df = pd.DataFrame(optimization_results)
 
-    # Get the row with the highest log-likelihood
-    optimal_row = int(results_df["log_likelihood"].idxmax())
-    optimal_result = results_df.iloc[optimal_row, :]
-
     # Get the optimal parameters
-    optimal_l = optimal_result["l"]
-    optimal_std = optimal_result["standard_deviation"]
+    optimal_l, optimal_std = get_optimal_params_from_df(results_df)
 
     return optimal_l, optimal_std, results_df
 
@@ -307,7 +384,9 @@ def plot_grid_search_results(
     x_results_df: pd.DataFrame,
     y_results_df: pd.DataFrame,
     position: np.ndarray,
-    custom_title_text: Optional[str] = None
+    custom_title_text: Optional[str] = None,
+    save_to_file: bool = False,
+    filename: Optional[str] = None,
 ):
     """
     Plot two subplots side by side, one for the X component and one for the Y
@@ -347,6 +426,18 @@ def plot_grid_search_results(
     ax1.set_title('Log Likelihood for $V_x$')
     fig.colorbar(scatter_plot1, ax=ax1)
 
+    # Get the optimal parameters for the X component
+    optimal_l_x, optimal_std_x = get_optimal_params_from_df(x_results_df)
+
+    # Plot the optimal parameters on the heatmap as a red dot
+    ax1.scatter(
+        optimal_l_x,
+        optimal_std_x,
+        c='red',
+        s=100,
+        marker='x',
+    )
+
     # Plot the heatmap for the Y component
     scatter_plot2 = ax2.scatter(
         y_results_df['l'],
@@ -360,10 +451,29 @@ def plot_grid_search_results(
     ax2.set_title('Log Likelihood for $V_y$')
     fig.colorbar(scatter_plot2, ax=ax2)
 
+    # Get the optimal parameters for the Y component
+    optimal_l_y, optimal_std_y = get_optimal_params_from_df(y_results_df)
+
+    # Plot the optimal parameters on the heatmap as a red dot
+    ax2.scatter(
+        optimal_l_y,
+        optimal_std_y,
+        c='red',
+        s=100,
+        marker='x',
+    )
+
     # Set the title of the figure
     if custom_title_text is None:
         fig.suptitle(f'Position: ({position[0]}, {position[1]})')
     else:
         fig.suptitle(custom_title_text)
+
+    # Save the figure to a file
+    if save_to_file:
+        if filename is None:
+            filename = f'grid_search_results_pos_{position[0]}_{position[1]}.png'
+
+        plt.savefig(filename)
 
     plt.show()
