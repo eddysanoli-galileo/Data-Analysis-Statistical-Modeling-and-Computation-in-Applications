@@ -67,25 +67,15 @@ NOT SOLVED FOR BEING OPTIONAL OR BONUS
 
         At the end, by plotting the position history of the particle, we can see its trajectory. The trajectory would be a straight line for a regular uniform rectilinear motion, but since the velocity changes, the trajectory will consist of a series of straight lines. This could be smoothed out by introducing acceleration into the equation, but unfortunately, acceleration estimation would require things like flow density and mass, which are not given in the data set.
 
-2. Plot of the initial state of the simulation.
+2. Plot of the initial and final states of the simulation. Also show two steps inbetween.
 
-    ![Initial Step](Images/flow_simulation_t0.png)
-
-3. Two plots of intermediate states of the simulation.
-
-    ![Intermediate Step 1](Images/flow_simulation_t25.png)
-
-    ![Intermediate Step 2](Images/flow_simulation_t75.png)
-
-4. Plot of the final state of the simulation.
-
-    ![Final Step](Images/flow_simulation_t_last.png)
+    ![particle-simulation](Images/random_particles_simulation.png)
 
 ### Problem 3.b (10 points)
 
 #### Rubric
 
-- (3 points): Provides plots showing the state of the simulation at the times: $T=48$hrs, $72$hrs, $120$hrs. (Three plots required.)
+- (3 points): Provides plots showing the state of the simulation at the times: T=48hrs, 72hrs, 120hrs. (Three plots required.)
 - (3 points): Two or more additional choices of the variances were tried, and three plots of the state of the simulation at the above three times are provided. (Six additional plots required.)
 - (4 points): Comments on where one should concentrate search activities based on the observed results.
 
@@ -123,7 +113,7 @@ The wisest choice would be to concentrate in the east section, as the mean is fo
 
     ![rbf-first-try](Images/rbf_final_predictions_first_try.png)
 
-    Even though I later found out that this error was due to a poor choice of prior mean, I decided to try another kernel function to see if the fit improved. Another similar kernel suggested by [David Duvenaud](https://www.cs.toronto.edu/~duvenaud/cookbook/), is the rational quadratic. After trying it, I found that the fit improved, but not as much as I would have liked. The predictions kept "diverging". After a thorough check of my logic, I found the error in the prior mean, and fixed it. The RBF kernel started working immediately, and I decided to stick with it. Retried using the rational quadratic kernel as well, but the variance was way too tight around the predicted mean, causing some of the training data to fall outside of the area of uncertainty.
+    Even though I later found out that this error was due to a poor choice of prior mean, I decided to try another kernel function to see if the fit improved. Another similar kernel suggested by [David Duvenaud](https://www.cs.toronto.edu/~duvenaud/cookbook/), is the rational quadratic. After trying it, I found that the fit improved, but not as much as I would have liked. The predictions kept "diverging". After a thorough check of my logic, I found the error in the prior mean, and fixed it. The RBF kernel started working immediately, and I decided to stick with it. Retried using the rational quadratic kernel as well, but the variance was way too tight around the predicted mean, causing some of the training data to fall outside of the area of uncertainty (area marked between 3 times the variance above and below the mean. Colored in gray in the chart below).
 
     ![rq-second-try](Images/rq_final_predictions_second_try.png)
 
@@ -138,7 +128,7 @@ The wisest choice would be to concentrate in the east section, as the mean is fo
 
     ![coarse-search](Images/rbf_grid_search_results_selected_pos.png)
 
-   After that phase, it was clear that the optimal length for both velocity components should be close to 2.12, while the optimal variance should be 0.1. The second phase then consisted of a finer search done around the area found in the first phase
+   After that phase, it was clear that the optimal length for both velocity components should be close to 2.12, while the optimal variance should be 0.1. The second phase then consisted of a finer search done around the (2.12, 0.1) area:
 
    - Length scale (l): 25 points between 1 and 3
    - Variance (sigma): 10 points between 0.1 and 0.10
@@ -159,7 +149,7 @@ The wisest choice would be to concentrate in the east section, as the mean is fo
 
     for the Y component.
 
-6. The last plot found in the 3rd point of this problem shows the cost/performance metric over the search space for the final kernel parameters used. The optimal parameters are marked with a red cross for clarity.
+6. The last plot found in the 3rd point of this problem shows the cost/performance metric over the finer search space. The optimal parameters are marked with a red cross for clarity. If we were to interpret the lighter colors as a higher height, and the lower colors as valleys, we can see that the surrounding area of the finer grid search shows a clear increase towards the optimal parameters found, confirming that the parameters were probably chosen correctly.
 
 ### Problem 4.b (5 points)
 
@@ -174,7 +164,7 @@ The wisest choice would be to concentrate in the east section, as the mean is fo
 
     ![new-positions](Images/rbf_selected_position_and_new_positions.png)
 
-    They were chosen since each of them cover a different section of the Philippine archipelago. The first one is in the east, the second one is in the middle, the third one is in the west, the fourth one is in the south, and the last one is in one of the coasts. We provide the search space and optimal parameters found for each of the new locations:
+    They were chosen since each of them cover a different section of the Philippine archipelago. The first one in the south China sea (bottom left), the second one in the Lusu sea (middle left), the third one in the philippine sea (middle right), the fourth one in Celebes sea (top left), and the last one near the Panay coast. We provide the search space and optimal parameters found for each of the new locations:
 
     ![100-200](Images/rbf_grid_search_results_100_200.png)
     ![150-400](Images/rbf_grid_search_results_150_400.png)
@@ -186,7 +176,7 @@ The wisest choice would be to concentrate in the east section, as the mean is fo
 
     - The log likelihood always starts decreasing as we approach a value of 4 for the length scale parameter.
     - The ideal length scale varies between 1.83 and 2.41 for both the X and Y components. The variance seems to remain constant in all cases at 0.1 (lower bound of the search space)
-    - The variance parameter always tends to go to the lowest value possible. Tried expanding the lower range of the search space for the variance parameter (sigma), but the final fit didn't actually seem to improve, tightening the uncertainty area around the predicted mean, but leaving more and more training data outside.
+    - The variance parameter always tends to go to the lowest value possible. Tried expanding the lower range of the search space for the variance parameter (sigma), but the final fit didn't actually seem to improve, tightening the uncertainty area around the predicted mean, but leaving more and more training data unaccounted for.
 
 ### Problem 4.c (5 points)
 
@@ -205,7 +195,7 @@ The wisest choice would be to concentrate in the east section, as the mean is fo
     - 0.1
     - 1
 
-    These were the search space and optimal parameters obtains for each velocity component and choice of Tau:
+    These were the search spaces and optimal parameters obtained for each velocity component and choice of Tau:
 
     ![tau=0.0001](Images/rbf_grid_search_results_tau_0.0001.png)
     ![tau=0.01](Images/rbf_grid_search_results_tau_0.01.png)
@@ -214,7 +204,9 @@ The wisest choice would be to concentrate in the east section, as the mean is fo
 
 2. Please see the plots provided in the previous point.
 
-3. The results are generally the same as the ones obtained in both problems 4.a and 4.b, with the length scale parameter varying between values close to 1.83 and 2.12, the variance going to the lowest possible value, and the log likelihood decreasing as we approach a length scale of 4. The only difference seems to be that as Tau increases, the length scale parameter starts decreasing. This could probably be thought of as the length scale compensating for the increase in observation noise. Since it cannot "trust" the far away neighbors as much, it needs to decrease the length scale to now focus on the closer neighbors or the finer details of the data. It basically starts losing the capacity of capturing the broader patterns in the data, focusing more on the local patterns.
+3. The results are generally the same as the ones obtained in both problems 4.a and 4.b, with the length scale parameter varying between values close to 1.83 and 2.12, the variance going to the lowest possible value, and the log likelihood decreasing as we approach a length scale of 4. The only difference seems to be that as Tau increases, the length scale parameter starts decreasing.
+
+   This could probably be thought of as the length scale compensating for the increase in observation noise. Since it cannot "trust" the far away neighbors as much, it needs to decrease the length scale to now focus on the closer neighbors or the finer details of the data. It basically starts losing the capacity of capturing the broader patterns in the data, focusing more on the local patterns.
 
 ### Problem 4.d (10 points)
 
@@ -253,33 +245,73 @@ The wisest choice would be to concentrate in the east section, as the mean is fo
 
 1. Initially it was considered that a good idea was to simply interpolate to gain back the 3 hour timeframe that we initially had in the first part of the project. However, in later simulation steps it seems like a day to day estimate is more than enough to be useful, so a prediction for every 24 hours was chosen. This meant that 2 additional points were inserted in between the existing time indexes. So, if our initial data was [0, 1, 2], the new time indexes would be [0, 0.33, 0.66, 1, 1.33, 1.66, 2].
 
-2. 3 methods were tested to generate the prior means: Moving average with a 5 sample window, zeros for all values and the mean of the training data. The moving average was found to cause the "divergent" behavior that caused problems when selecting the kernel, so it was quickly discarded. The remaining methods remained pretty similar, but assuming that the mean was initially zero seemed to be the best choice, as it generated the best uncertainty region: Tight around the mean, but still including all of the observations. 
+2. 3 methods were tested to generate the prior means: Moving average with a 5 sample window, zeros for all values and the mean of the training data. The moving average was found to cause the "divergent" behavior that caused problems when selecting the kernel in point 4.a, so it was quickly discarded. The remaining methods generated pretty similar results, but assuming that the mean was initially zero seemed to be the best choice, as it generated the best uncertainty region: Tight around the mean, but still including all of the observations.
 
 3. Plot for both the horizontal and vertical velocity components:
 
     ![final-prediction](Images/rbf_final_predictions.png)
 
-4. See the previous point.
-5. See point 3
-6. See point 3
+4. The previous figure includes a plot on the right for the vertical velocity component.
+5. The mean can be seen in the provided figure as an orange line
+6. The labelled uncertainty band can be seen around the mean in the provided figure. The top part of the band is 3 variances above the mean, and the bottom part is 3 variances below the mean.
+7. The training observations can be seen in the provided figure as blue crosses.
 
 ### Problem 6.a (15 points)
 
-Rubric:
+#### Rubric
 
 - (2 points): Provides a plot with the initial state of the simulation.
 - (2 points): Provides a plot with an intermediate state of the simulation.
 - (2 points): Provides a plot with the final state of the simulation.
 - (2 points): Marks a location on the coast of the final state of the simulation where one should search for debris and provides a justification.
 - (2 points): Marks a location over the ocean of the final state of the simulation where one should search for debris and provides a justification.
-- (5 points): Provides three plots (initial, intermediate, final) for one other choice of , and comments on results (either to state why conclusions should change or why they should not).
+- (5 points): Provides three plots (initial, intermediate, final) for one other choice of sigma, and comments on results (either to state why conclusions should change or why they should not).
+
+#### Solution
+
+1. A simulation of multiple possible crash locations was generated for the toy plane that crashed at (300km, 1050km). A relatively low variance of 30km was used, because it was assumed that the initial crash location was well known. These are the plots for the debris progression at 0 days, 149 days and 298 days.
+
+    ![debris-sigma-30](Images/rbf_plane_debris_sigma_30.png)
+
+    In this scenario, the plane debris would've been found in the ocean, around a relatively small ellipsoidal region near the mean of the possible crash locations. The debris could've never been found in the shore, since most of the currents in a 30km radius point towards the south, and lack the strength to push the debris to the upper east coast of the archipelago, even after almost a year.
+
+    ![debris-sigma-30-region](Images/rbf_plane_debris_sigma_30_region.png)
+
+2. The crash could've also happened without the original location being as well known as it was originally assumed. In order to model this, two additional simulations were generated with a higher variance of 50 and 100km.
+
+    ![debris-sigma-50](Images/rbf_plane_debris_sigma_50.png)
+    ![debris-sigma-100](Images/rbf_plane_debris_sigma_100.png)
+
+    With this new set of variances, the particle trajectories obviously diverge a lot more, causing the debris to now be able to reach the Palawan coast (especially in the 100km variance case. Marked in blue in the figure below). However, even in this case, the currents still point towards the south, so most of the debris would still be found at sea, near Manila or in the south china sea (marked in red). There is a small percentage of objects that remain relatively static, as the speed of the currents in a nearby region is very low. However, most of the currents point south, so the debris would eventually be pushed towards the highlighted red region.
+
+    ![debris-sigma-100-region](Images/rbf_plane_debris_sigma_100_region.png)
 
 ### Problem 6.b (14 points)
 
-Rubric:
+#### Rubric
 
 - (2 points): Provides a plot with the initial state of the simulation, there should be no particles on land.
 - (2 points): Provides a plot with an intermediate state of the simulation.
 - (2 points): Provides a plot with the final state of the simulation.
 - (4 points): Marks three locations on the final state of the simulation where monitoring stations should be placed.
 - (4 points): Provides a convincing explanation for choosing these locations.
+
+#### Solution
+
+For this problem, we need to gather as much data on the movement of particles around the archipelago. Because of this, a total of 500 particles were simulated. Their initial state was randomly generated uniformly around the map, making sure to remove all particles that were initially on land, and around coasts. A simulation with seed 42 was generated, and the following plots were generated for the initial, intermediate and final states of the simulation.
+
+![stranded-simulation](Images/rbf_stranded_simulation.png)
+
+These plots are very interesting, as with this amount of particles, you can start noticing that the trails that the particles leave behind start tracing the natural flow of the currents in the surrounding seas. This flow could be used to trace the points where the particles eventually merge and then crash into the coast. However, this can be disingenuous as a different set of initial positions could lead to a different set of crashes into the coast. Because of this, it was decided to run multiple simulations with different seeds, and then try to locate the common places where particles tend to crash into the coast. The following figure shows the results of 4 5000-particle simulations, each one with a different seed.
+
+![monitoring-station-possibilities](Images/rbf_particles_simulation.png)
+
+The red marks in the plots show locations where the particles crashed into the coast. As expected, the clusters of crashes vary between simulations, but there are some locations that consistently amass a lot of crashes. To more easily visualize the "core" of these clusters, the crashes were taken and then clustered using the k-means algorithm with a K = 10. The cluster centers consist of the green diamonds seen above.
+
+After analyzing the flow data, and the cluster centers generated, the following locations were chosen as the best places to put monitoring stations:
+
+![possible-outposts](Images/rbf_possible_outposts.png)
+
+The first one should be placed at the top of "North Zamboanga", as the four simulations coincided in the placement of a cluster center near that location. The second one is in "North Surigao", once again because four of the simulations placed a cluster center there, and there seems to be a large current that flows next to that area, sometimes crashing into the coast. The third one was difficult, as there wasn't a consensus, and the rest of the cluster centers were placed near the previous two possible monitoring stations. A monitoring station should also focus in covering a larger variety of locations, in order to get a better idea of how much debris is floating around the archipelago. Because of this, the third monitoring stations was placed in "North Palawan", as it is the furthest away from the other two, its able to cover the south china sea region and it consistently amasses a lot of crashes in the simulations.
+
+Although the previous locations can be thought of as the best places to put monitoring stations, I would still recommend the addition of a fourth monitoring station in one of the inner sections of the archipelago, as this would cover a lot of the small landmasses that are not covered by the other three stations near the big water bodies.

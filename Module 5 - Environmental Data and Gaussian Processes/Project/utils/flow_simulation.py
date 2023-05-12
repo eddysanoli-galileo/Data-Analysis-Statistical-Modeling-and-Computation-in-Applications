@@ -69,7 +69,13 @@ def simulate_flow(
 
         # Get the surrogate X and Y positions for the particles
         # (Closest integer coordinates after converting back to indexes by dividing by 3)
-        x_surrogate = np.round(x_t / 3).astype(int)
+        x_surrogate = np.floor(x_t / 3).astype(int)
+
+        # Clip the surrogate positions to the bounds of the velocity array
+        # (Since we are indexing the velocity array, we need to make sure that
+        # the indexes are within the bounds of the array)
+        x_surrogate[:, 0] = np.clip(x_surrogate[:, 0], 0, v_t.shape[2] - 1)
+        x_surrogate[:, 1] = np.clip(x_surrogate[:, 1], 0, v_t.shape[1] - 1)
 
         # Get the X and Y velocities for the surrogate positions
         # (Vt is already in kilometers per hour)
